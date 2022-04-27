@@ -1,236 +1,160 @@
-let timeEl = document.querySelector("p.time");
-let secondsLeft = 75;
-let scoreEl = document.querySelector("#score");
+var questionsEl = document.querySelector("#questions");
+var timerEl = document.querySelector("#time");
+var choicesEl = document.querySelector("#choices");
+var submitBtn = document.querySelector("#submit");
+var startBtn = document.querySelector("#start");
+var initialsEl = document.querySelector("#initials");
+var feedbackEl = document.querySelector("#feedback");
 
-// sections
-const introEl = document.querySelector("#intro");
+// quiz state variables
+var currentQuestionIndex = 0;
+var time = questions.length * 15;
+var timerId;
 
-// section questions
-//question section
-const questionsEl = document.querySelector("#questions");
-//where question goes
-let questionEl = document.querySelector("#question");
-
-let questionCount = 0;
-// div yaynay
-const yaynayEl = document.querySelector("#yaynay");
-
-// section final
-const finalEl = document.querySelector("#final");
-
-let initialsInput = document.querySelector("#initials");
-
-// section highscores
-const highscoresEl = document.querySelector("#highscores");
-
-let scoreListEl = document.querySelector("#score-list");
-// array of scores
-let scoreList = [];
-
-// buttons
-// start
-const startBtn = document.querySelector("#start");
-// answer button class
-const ansBtn = document.querySelectorAll("button.ansBtn")
-// answer1
-const ans1Btn = document.querySelector("#answer1");
-// answer2
-const ans2Btn = document.querySelector("#answer2");
-// answer3
-const ans3Btn = document.querySelector("#answer3");
-// answer4
-const ans4Btn = document.querySelector("#answer4");
-// submit-score
-const submitScrBtn = document.querySelector("#submit-score");
-// goback
-const goBackBtn = document.querySelector("#goback");
-// clearscores
-const clearScrBtn = document.querySelector("#clearscores");
-// view-scores
-const viewScrBtn = document.querySelector("#view-scores");
-
-// Object for question, answer, true/false
-const questions = [ // array of objects
-    {
-        // question 0
-        question: "Commonly used data types do NOT include:",
-        answers: ["1. strings", "2. booleans", "3. alerts", "4. numbers"],
-        correctAnswer: "2"
-    },
-    {
-        // question 1
-        question: "The condition in an if / else statement is enclosed within ____.",
-        answers: ["1. quotes", "2. curly brackets", "3. parentheses", "4. square brackets"],
-        correctAnswer: "1"
-    },
-    {
-        // question 2
-        question: "Arrays in Javascript can be used to store ____.",
-        answers: ["1. numbers and strings", "2. other arrays", "3. booleans", "4. all of the above"],
-        correctAnswer: "3"
-    },
-    {
-        // question 3
-        question: "String values must be enclosed within ____ when being assigned to variables.",
-        answers: ["1. commmas", "2. curly brackets", "3. quotes", "4. parentheses"],
-        correctAnswer: "2"
-    },
-    {
-        // question 4
-        question: "A very useful tool used during development and debugging for printing content to the debugger is:",
-        answers: ["1. Javascript", "2. terminal/bash", "3. for loops", "4. console.log"],
-        correctAnswer: "3"
-    }
-];
-
-// Functions
-
-function setTime() {
-    let timerInterval = setInterval(function () {
-        secondsLeft--;
-        timeEl.textContent = `Time:${secondsLeft}s`;
-
-        if (secondsLeft === 0 || questionCount === questions.length) {
-            clearInterval(timerInterval);
-            questionsEl.style.display = "none";
-            finalEl.style.display = "block";
-            scoreEl.textContent = secondsLeft;
-        }
-    }, 1000);
-}
-
-// start quiz with timer and set up questions
 function startQuiz() {
-    introEl.style.display = "none";
-    questionsEl.style.display = "block";
-    questionCount = 0;
+  // hide start screen
+  var startScreenEl = document.getElementById("start-screen");
+  startScreenEl.setAttribute("class", "hide");
 
-    setTime();
-    setQuestion(questionCount);
+  // un-hide questions section
+  questionsEl.removeAttribute("class");
+
+  // start timer
+  timerId = setInterval(clockTick, 1000);
+
+  // show starting time
+  timerEl.textContent = time;
+
+  getQuestion();
 }
 
-// function to set question; takes in a count and displays the next question/answers
-function setQuestion(id) {
-    if (id < questions.length) {
-        questionEl.textContent = questions[id].question;
-        ans1Btn.textContent = questions[id].answers[0];
-        ans2Btn.textContent = questions[id].answers[1];
-        ans3Btn.textContent = questions[id].answers[2];
-        ans4Btn.textContent = questions[id].answers[3];
+function getQuestion() {
+  // get current question object from array
+  var currentQuestion = questions[currentQuestionIndex];
+
+  // update title with current question
+  var titleEl = document.getElementById("question-title");
+  titleEl.textContent = currentQuestion.title;
+
+  // clear out any old question choices
+  choicesEl.innerHTML = "";
+
+  // loop over choices
+  currentQuestion.choices.forEach(function(choice, i) {
+    // create new button for each choice
+    var choiceNode = document.createElement("button");
+    choiceNode.setAttribute("class", "choice");
+    choiceNode.setAttribute("value", choice);
+
+    choiceNode.textContent = i + 1 + ". " + choice;
+
+    // attach click event listener to each choice
+    choiceNode.onclick = questionClick;
+
+    // display on the page
+    choicesEl.appendChild(choiceNode);
+  });
+}
+
+function questionClick() {
+  // check if user guessed wrong
+  if (this.value !== questions[currentQuestionIndex].answer) {
+    // penalize time
+    time -= 15;
+
+    if (time < 0) {
+      time = 0;
     }
+    // display new time on page
+    timerEl.textContent = time;
+    feedbackEl.textContent = "Wrong!";
+    feedbackEl.style.color = "red";
+    feedbackEl.style.fontSize = "400%";
+  } else {
+    feedbackEl.textContent = "Correct!";
+    feedbackEl.style.color = "green";
+    feedbackEl.style.fontSize = "400%";
+  }
+
+  // flash right/wrong feedback
+  feedbackEl.setAttribute("class", "feedback");
+  setTimeout(function() {
+    feedbackEl.setAttribute("class", "feedback hide");
+  }, 1000);
+
+  // next question
+  currentQuestionIndex++;
+
+  // time checker
+  if (currentQuestionIndex === questions.length) {
+    quizEnd();
+  } else {
+    getQuestion();
+  }
 }
 
-// function to check answer and then move to next question
-function checkAnswer(event) {
-    event.preventDefault();
+function quizEnd() {
+  // stop timer
+  clearInterval(timerId);
 
-    // show section for yaynay and append message
-    yaynayEl.style.display = "block";
-    let p = document.createElement("p");
-    yaynayEl.appendChild(p);
+  // show end screen
+  var endScreenEl = document.getElementById("end-screen");
+  endScreenEl.removeAttribute("class");
 
-    // time out after 1 second
-    setTimeout(function () {
-        p.style.display = 'none';
-    }, 1000);
+  // show final score
+  var finalScoreEl = document.getElementById("final-score");
+  finalScoreEl.textContent = time;
 
-    // answer checker
-    if (questions[questionCount].correctAnswer === event.target.value) {
-        p.textContent = "Correct!";
-    } else if (questions[questionCount].correctAnswer !== event.target.value) {
-        secondsLeft = secondsLeft - 10;
-        p.textContent = "Wrong!";
-    }
-
-    // increment so the questions index is increased
-    if (questionCount < questions.length) {
-        questionCount++;
-    }
-    // call setQuestion to bring in next question when any ansBtn is clicked
-    setQuestion(questionCount);
+  // hide questions section
+  questionsEl.setAttribute("class", "hide");
 }
 
-function addScore(event) {
-    event.preventDefault();
+function clockTick() {
+  // update time
+  time--;
+  timerEl.textContent = time;
 
-    finalEl.style.display = "none";
-    highscoresEl.style.display = "block";
-
-    let init = initialsInput.value.toUpperCase();
-    scoreList.push({ initials: init, score: secondsLeft });
-
-    // sort scores
-    scoreList = scoreList.sort((a, b) => {
-        if (a.score < b.score) {
-          return 1;
-        } else {
-          return -1;
-        }
-      });
-    
-    scoreListEl.innerHTML="";
-    for (let i = 0; i < scoreList.length; i++) {
-        let li = document.createElement("li");
-        li.textContent = `${scoreList[i].initials}: ${scoreList[i].score}`;
-        scoreListEl.append(li);
-    }
-
-    // Add to local storage
-    storeScores();
-    displayScores();
+  // check if user ran out of time
+  if (time <= 0) {
+    quizEnd();
+  }
 }
 
-function storeScores() {
-    localStorage.setItem("scoreList", JSON.stringify(scoreList));
+function saveHighscore() {
+  // get value of input box
+  var initials = initialsEl.value.trim();
+
+  if (initials !== "") {
+    // get saved scores from localstorage, or if not any, set to empty array
+    var highscores =
+      JSON.parse(window.localStorage.getItem("highscores")) || [];
+
+    // format new score object for current user
+    var newScore = {
+      score: time,
+      initials: initials
+    };
+
+    // save to localstorage
+    highscores.push(newScore);
+    window.localStorage.setItem("highscores", JSON.stringify(highscores));
+
+    // redirect to next page
+    window.location.href = "score.html";
+  }
 }
 
-function displayScores() {
-    // Get stored scores from localStorage
-    // Parsing the JSON string to an object
-    let storedScoreList = JSON.parse(localStorage.getItem("scoreList"));
-
-    // If scores were retrieved from localStorage, update the scorelist array to it
-    if (storedScoreList !== null) {
-        scoreList = storedScoreList;
-    }
+function checkForEnter(event) {
+  // "13" represents the enter key
+  if (event.key === "Enter") {
+    saveHighscore();
+  }
 }
 
-// clear scores
-function clearScores() {
-    localStorage.clear();
-    scoreListEl.innerHTML="";
-}
+// submit initials
+submitBtn.onclick = saveHighscore;
 
-// EventListeners
-// Start timer and display first question when click start quiz
-startBtn.addEventListener("click", startQuiz);
+// start quiz
+startBtn.onclick = startQuiz;
 
-// Check answers loop
-ansBtn.forEach(item => {
-    item.addEventListener('click', checkAnswer);
-});
-
-// Add score
-submitScrBtn.addEventListener("click", addScore);
-
-// Go Back Button
-goBackBtn.addEventListener("click", function () {
-    highscoresEl.style.display = "none";
-    introEl.style.display = "block";
-    secondsLeft = 75;
-    timeEl.textContent = `Time:${secondsLeft}s`;
-});
-
-// Clear the scores
-clearScrBtn.addEventListener("click", clearScores);
-
-// View/Hide High Scores Button
-viewScrBtn.addEventListener("click", function () {
-    if (highscoresEl.style.display === "none") {
-        highscoresEl.style.display = "block";
-    } else if (highscoresEl.style.display === "block") {
-        highscoresEl.style.display = "none";
-    } else {
-        return alert("No scores to show.");
-    }
-});
+initialsEl.onkeyup = checkForEnter;
